@@ -18,7 +18,7 @@ This is the SQLAlchemy submission for: Surf's Up
 
 * [Code:](Code)  
 
-  * [Part 1 - Climate Analysis - Jupyter Notebook](Code/climate_analysis.ipynb) - cretes engine to connecto sqlite database and produces: Precipitation analysis plot / summary stats and  Stattion Analysis and temperature histogram.
+  * [Part 1 - Climate Analysis - Jupyter Notebook](Code/climate_analysis.ipynb) - creates engine to connecto sqlite database and produces: Precipitation analysis plot / summary stats and  Stattion Analysis and temperature histogram.
 
   * [Part 2 - Climate App - Flask App and Python code](Code/ClimateApp.py)- 5 routes as requested for: preciitation analysis, station list, temperture observations for station with most observations, and 2 date based queries for creating summary statistics on temperatures.  
  
