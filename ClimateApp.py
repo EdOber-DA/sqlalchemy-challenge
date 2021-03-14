@@ -18,7 +18,7 @@ engine = create_engine("sqlite:///hawaii.sqlite")
 Base = automap_base()
 # reflect the tables
 Base.prepare(engine, reflect=True)
-print(inspect(engine).get_table_names())
+
 # Save reference to the table
 Measurement = Base.classes.measurement
 Station = Base.classes.station
@@ -51,10 +51,10 @@ def precipitation():
     # Find the most recent date in the Measurement table.
     maxdate = session.query(func.max(Measurement.date)).all() 
     
-    date_time_obj = dt.datetime.strptime(maxdate[0][0],'%Y-%m-%d')
+    date_time_obj = dt.datetime.strptime(maxdate[0][0],'%Y-%m-%d').date()
 
-    year_earlier = date_time_obj - dt.timedelta(days=366) 
-
+    year_earlier = date_time_obj - dt.timedelta(days=365)
+ 
     """Return a list of precipitation data including the date and amount"""
     # Query all measurements
     precip_list = session.query(Measurement.date, func.sum(Measurement.prcp)).\
@@ -95,6 +95,7 @@ def tobs():
     session = Session(engine)
     
     ".first we build the subquery for the filter...."
+    # find the station with the count of most observations
     subquery = session.query(Measurement.station.label("Station")).\
           group_by(Measurement.station).\
           order_by(desc(func.count(Measurement.station))).first() 
@@ -103,18 +104,20 @@ def tobs():
     maxdate = session.query(func.max(Measurement.date)).\
     filter(Measurement.station.in_(subquery)).all() 
     
-    date_time_obj = dt.datetime.strptime(maxdate[0][0],'%Y-%m-%d')
-
-    year_earlier = date_time_obj - dt.timedelta(days=366) 
-
+    # strip off the date, and get just the date part 
+    date_time_obj = dt.datetime.strptime(maxdate[0][0],'%Y-%m-%d').date()
+    # find a year earlier
+    year_earlier = date_time_obj - dt.timedelta(days=365) 
+  
     """Return a list of temperature data including the date for the one location"""
-    # Query all measurements
+    # Query all measurements, filtering for the location we want, adn the past year
     temp_list = session.query(Measurement.date, Measurement.tobs).\
     filter(Measurement.date >= year_earlier).\
     filter(Measurement.station.in_(subquery)).group_by(Measurement.date).order_by(Measurement.date).all()    
 
     session.close()
 
+    # build the list for the json
     all_temps = []
     for date, tobs in temp_list:
         tobs_dict = {}
@@ -125,30 +128,23 @@ def tobs():
     return jsonify(all_temps)
 
 
-###############################################
-
-
-    
-    return jsonify(query_data)
-
-
 @app.route("/api/v1.0/<start>")
 def start(start):
     # Create our session (link) from Python to the DB
     session = Session(engine)
     
     # work with the date
-    # convert the string to a datetime obj
-
-    date_start_obj = dt.datetime.strptime(start,'%Y-%m-%d')
-       
+    # convert the string to a datetime obj, adn strip off the time portion with .date()
+    date_start_obj = dt.datetime.strptime(start,'%Y-%m-%d').date()
+     
     # this is the main query to calculate the min, max, avg with func... 
         
     temp_list = session.query(func.min(Measurement.tobs).label("Min_Temp"), \
         func.avg(Measurement.tobs).label("Avg_Temp"), \
         func.max(Measurement.tobs).label("Max_Temp")).\
         filter(Measurement.date >= date_start_obj).all()
-    
+
+    # create the list for the json  
     all_temps = []
     for Min_Temp, Avg_Temp, Max_Temp in temp_list:
         temp_dict = {}
@@ -167,19 +163,18 @@ def start_end(start,end):
     session = Session(engine)
     
     # work with the date
-    # convert the string to a datetime obj
-
-    date_start_obj = dt.datetime.strptime(start,'%Y-%m-%d')
-    date_end_obj = dt.datetime.strptime(end,'%Y-%m-%d')
+    # convert the strings to datetime objs and strip off the time part with .date()
+    # otherwise the comparisions are off...
+    date_start_obj = dt.datetime.strptime(start,'%Y-%m-%d').date()
+    date_end_obj = dt.datetime.strptime(end,'%Y-%m-%d').date()
     
-    # this is the main query to calculate the min, max, avg with func... 
-        
+    # this is the main query to calculate the min, max, avg with func...  
     temp_list = session.query(func.min(Measurement.tobs).label("Min_Temp"), \
         func.avg(Measurement.tobs).label("Avg_Temp"), \
         func.max(Measurement.tobs).label("Max_Temp")).\
         filter(Measurement.date >= date_start_obj).\
         filter(Measurement.date <= date_end_obj).all()
-    
+        
     all_temps = []
     for Min_Temp, Avg_Temp, Max_Temp in temp_list:
         temp_dict = {}
